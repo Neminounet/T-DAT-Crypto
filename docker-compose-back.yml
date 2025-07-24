@@ -1,0 +1,21 @@
+services:
+  tdat901-back:
+    build:
+      context: ./Back/tdat901
+      dockerfile: Dockerfile
+    image: tdat901-back:latest
+    container_name: tdat901-back
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      APP_ALLOWED_ORIGINS: ${APP_ALLOWED_ORIGINS}
+    networks:
+      - crypto-network
+
+networks:
+  crypto-network:
+    external: true

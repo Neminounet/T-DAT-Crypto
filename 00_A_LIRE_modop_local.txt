@@ -1,0 +1,36 @@
+Gros nettoyage : (attention ça vire tout O.o container/images/volumes/ network) ==> docker system prune -a  
+pour virer uniquement ce qui n'est plus utilisé => docker system prune 
+
+Déploiement Local : 
+===================
+** Très important **
+**********************************************
+* 1. Création du réseau network Externe :    *
+* docker network create crypto-network       *
+********************************************** 
+** On passe sur un réseau "externe" tout simplement pour que les docker-compose puissent communiquer entre eux
+
+** L'ORDRE EST IMPORTANT : ETL => BACK => FRONT **
+
+2. Démarrage du docker compose ETL : 
+docker compose -f docker-compose-etl.yml up -d
+ou
+docker compose -f docker-compose-etl.yml up --build -d (Rebuild les images, utile dans le cas de modifications/tests sinon privilégier l'autre option)
+
+3. Démarrage du docker compose Back :
+docker compose -f docker-compose-back.yml up -d
+ou
+docker compose -f docker-compose-back.yml up --build -d (Voir au dessus :D)
+
+Couper les docker compose :
+=============================
+1. Back en premier :
+docker compose -f docker-compose-back.yml down -v (!! Supprime tous les volumes !! utile dans le cas de tests mais privilégier l'autre)
+ou 
+docker compose -f docker-compose-back.yml down
+
+2. ETL : 
+docker compose -f docker-compose-etl.yml down -v (voir au dessus :D)
+ou 
+docker compose -f docker-compose-etl.yml down
+

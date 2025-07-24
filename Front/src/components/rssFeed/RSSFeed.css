@@ -1,0 +1,109 @@
+/* Conteneur principal */
+.rss-feed {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Titre de la page */
+.rss-feed h1 {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+/* Grille des articles */
+.rss-articles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-gap: 20px;
+}
+/* Article individuel */
+.rss-article {
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  background-color: #f0f0f0;
+  border-radius: 10px;
+  padding: 20px;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+/* Titre de l'article */
+.rss-article h2 {
+  font-size: 1.2em;
+  margin-bottom: 10px;
+}
+
+/* Lien du titre */
+.rss-article h2 a {
+  color: #333;
+  text-decoration: none;
+}
+
+/* Effet au survol du lien du titre */
+.rss-article h2 a:hover {
+  text-decoration: underline;
+}
+
+/* Image de l'article */
+.rss-image {
+  width: 100%;
+  height: 200px; /* Hauteur fixe pour toutes les images */
+  object-fit: cover;
+  margin: 10px 0;
+  border-radius: 5px;
+}
+
+/* Texte de l'article */
+.rss-article p {
+  font-size: 1em;
+  line-height: 1.6;
+  max-height: 4.8em;
+  overflow: hidden;
+  position: relative;
+}
+
+
+/* Effet au survol de l'article */
+.rss-article:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.pagination button {
+  padding: 10px 20px;
+  margin: 0 10px;
+  background-color: #3b82f6;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+.pagination button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.pagination span {
+  font-size: 1em;
+}
+.article-title {
+  min-height: 60px; /* Hauteur minimale pour uniformiser */
+  overflow: hidden;
+}
+.article-title h2 {
+  font-size: 1.2em;
+  margin-bottom: 10px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* Limite à 2 lignes */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

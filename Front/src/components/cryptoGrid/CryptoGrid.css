@@ -1,0 +1,101 @@
+/* Conteneur principal incluant les flèches */
+.crypto-container {
+  position: relative;
+  width: 100%;
+  margin: 20px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Conteneur des cartes crypto avec défilement horizontal */
+.crypto-grid {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  width: 87%;
+  max-width: 1752px;
+  scroll-behavior: smooth;
+  margin: 0 auto;
+  padding-top: 20px;
+}
+
+/* Style pour chaque carte */
+.crypto-item {
+  flex: 0 0 23%;
+  margin-right: 2%;
+}
+
+.crypto-item:last-child {
+  margin-right: 0;
+}
+
+/* Flèches de défilement */
+.scroll-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 40px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.5);
+  width: 50px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.3s;
+  z-index: 1;
+}
+
+.scroll-arrow:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.scroll-arrow-left {
+  left: 10px;
+}
+
+.scroll-arrow-right {
+  right: 10px;
+}
+
+/* Bannière */
+.banner-container {
+  position: relative;
+  width: 100%;
+  height: 400px;
+  overflow: hidden;
+}
+
+.crypto-banner {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Texte superposé sur l'image */
+.banner-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: white;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+  font-family: 'Arial', sans-serif;
+}
+
+.banner-text h1 {
+  font-size: 3em;
+  margin: 0;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
+.banner-text h2 {
+  font-size: 1.5em;
+  margin: 10px 0 0 0;
+  font-weight: normal;
+}

@@ -1,0 +1,422 @@
+services:
+  # RabbitMQ service
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq-container
+    ports:
+      - "5672:5672" # Port pour AMQP
+      - "15672:15672" # Port pour l'interface de gestion
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    volumes:
+      - type: volume
+        source: rabbitmq-data
+        target: /var/lib/rabbitmq
+    networks:
+      - crypto-network
+
+  # TimescaleDB service
+  timescaledb:
+    image: timescale/timescaledb:latest-pg14
+    container_name: timescaledb-container
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: tdat901
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - type: volume
+        source: timescaledb_data
+        target: /var/lib/postgresql/data
+    networks:
+      - crypto-network
+
+  # MongoDB service
+  mongodb:
+    image: mongo:latest
+    restart: always
+    container_name: mongodb-container
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+      - MONGO_INITDB_DATABASE=${MONGO_DB}
+      - MONGODB_HOST=mongodb
+      - MONGODB_PORT=27017
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - type: volume
+        source: mongo_data
+        target: /data/db
+    networks:
+      - crypto-network
+
+  # pgAdmin service
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin-container
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PG_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PG_PASSWORD}
+    ports:
+      - "8081:80"
+    volumes:
+      - type: volume
+        source: pgadmin_data
+        target: /var/lib/pgadmin
+    depends_on:
+      - timescaledb
+    networks:
+      - crypto-network
+
+  # Mongo Express service
+  mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+      - "8082:8081"
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=mongodb
+      - ME_CONFIG_MONGODB_PORT=27017
+      - ME_CONFIG_MONGODB_ENABLE_ADMIN=true
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=${MONGO_ROOT_USER}
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=${MONGO_ROOT_PASSWORD}
+      - ME_CONFIG_BASICAUTH_USERNAME=${MONGO_EXPRESS_USER}
+      - ME_CONFIG_BASICAUTH_PASSWORD=${MONGO_EXPRESS_PASSWORD}
+    depends_on:
+      - mongodb
+    networks:
+      - crypto-network
+
+  # DB initializer service
+  db_initializer:
+    build:
+      context: .
+      dockerfile: ETL/Consumers/db_initializer/Dockerfile
+    container_name: db-initializer-container
+    depends_on:
+      - timescaledb
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_NAME=${DB_NAME}
+    networks:
+      - crypto-network
+
+  # Producers services
+  live_price_producer:
+    build:
+      context: .
+      dockerfile: ETL/Producers/live_price_producer/Dockerfile
+    container_name: live-price-producer-container
+    depends_on:
+      - rabbitmq
+      - mongodb
+    environment:
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_PASS=${RABBITMQ_DEFAULT_PASS}
+      - RABBITMQ_VHOST=${RABBITMQ_VHOST}
+    networks:
+      - crypto-network
+
+  historical_price_producer:
+    restart: no
+    build:
+      context: .
+      dockerfile: ETL/Producers/historical_price_producer/Dockerfile
+    container_name: historical-price-producer-container
+    depends_on:
+      - rabbitmq
+      - mongodb
+    environment:
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_PASS=${RABBITMQ_DEFAULT_PASS}
+      - RABBITMQ_VHOST=${RABBITMQ_VHOST}
+    volumes:
+      - type: volume
+        source: historical_data_volume
+        target: /data
+    networks:
+      - crypto-network
+
+  news_feed_producer:
+    build:
+      context: .
+      dockerfile: ETL/Producers/news_feed_producer/Dockerfile
+    container_name: news-feed-producer-container
+    depends_on:
+      - rabbitmq
+      - mongodb
+    environment:
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_PASS=${RABBITMQ_DEFAULT_PASS}
+      - RABBITMQ_VHOST=${RABBITMQ_VHOST}
+    networks:
+      - crypto-network
+
+  google_trends_producer:
+    build:
+      context: .
+      dockerfile: ETL/Producers/google_trends_producer/Dockerfile
+    container_name: google-trends-producer-container
+    depends_on:
+      - rabbitmq
+      - mongodb
+    environment:
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_PASS=${RABBITMQ_DEFAULT_PASS}
+      - RABBITMQ_VHOST=${RABBITMQ_VHOST}
+    networks:
+      - crypto-network
+
+  # Reinjector service
+  reinjector:
+    build:
+      context: .
+      dockerfile: ETL/Producers/reinject_failed_messages_producer/Dockerfile
+    container_name: reinject-failed-messages-producer-container
+    depends_on:
+      - rabbitmq
+      - mongodb
+    environment:
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_PASS=${RABBITMQ_DEFAULT_PASS}
+      - RABBITMQ_VHOST=${RABBITMQ_VHOST}
+    networks:
+      - crypto-network
+
+  # Consumers service
+  live_price_consumer:
+    build:
+      context: .
+      dockerfile: ETL/Consumers/live_price_consumer/Dockerfile
+    container_name: live-price-consumer-container
+    depends_on:
+      - rabbitmq
+      - mongodb
+      - timescaledb
+      - db_initializer
+    environment:
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_PASS=${RABBITMQ_DEFAULT_PASS}
+      - RABBITMQ_VHOST=${RABBITMQ_VHOST}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_NAME=${DB_NAME}
+    networks:
+      - crypto-network
+
+  historical_price_consumer:
+    build:
+      context: .
+      dockerfile: ETL/Consumers/historical_price_consumer/Dockerfile
+    container_name: historical-price-consumer-container
+    depends_on:
+      - rabbitmq
+      - mongodb
+      - timescaledb
+      - db_initializer
+    environment:
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_PASS=${RABBITMQ_DEFAULT_PASS}
+      - RABBITMQ_VHOST=${RABBITMQ_VHOST}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_NAME=${DB_NAME}
+    networks:
+      - crypto-network
+
+  news_feed_consumer:
+    build:
+      context: .
+      dockerfile: ETL/Consumers/news_feed_consumer/Dockerfile
+    container_name: news-feed-consumer-container
+    depends_on:
+      - rabbitmq
+      - mongodb
+      - timescaledb
+      - db_initializer
+    environment:
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_PASS=${RABBITMQ_DEFAULT_PASS}
+      - RABBITMQ_VHOST=${RABBITMQ_VHOST}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_NAME=${DB_NAME}
+    networks:
+      - crypto-network
+
+  google_trends_consumer:
+    build:
+      context: .
+      dockerfile: ETL/Consumers/google_trends_consumer/Dockerfile
+    container_name: google-trends-consumer-container
+    depends_on:
+      - rabbitmq
+      - mongodb
+      - timescaledb
+      - db_initializer
+    environment:
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_PASS=${RABBITMQ_DEFAULT_PASS}
+      - RABBITMQ_VHOST=${RABBITMQ_VHOST}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_NAME=${DB_NAME}
+    networks:
+      - crypto-network
+
+  # DLX service
+  live_price_dlx_consumer:
+    build:
+      context: .
+      dockerfile: ETL/Consumers/live_price_dlx_consumer/Dockerfile
+    container_name: live-price-dlx-consumer-container
+    depends_on:
+      - rabbitmq
+      - live_price_consumer
+    environment:
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_PASS=${RABBITMQ_DEFAULT_PASS}
+      - RABBITMQ_VHOST=${RABBITMQ_VHOST}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_NAME=${DB_NAME}
+    networks:
+      - crypto-network
+
+  historical_price_dlx_consumer:
+    build:
+      context: .
+      dockerfile: ETL/Consumers/historical_price_dlx_consumer/Dockerfile
+    container_name: historical-price-dlx-consumer-container
+    depends_on:
+      - rabbitmq
+      - historical_price_consumer
+    environment:
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_PASS=${RABBITMQ_DEFAULT_PASS}
+      - RABBITMQ_VHOST=${RABBITMQ_VHOST}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_NAME=${DB_NAME}
+    networks:
+      - crypto-network
+
+  news_feed_dlx_consumer:
+    build:
+      context: .
+      dockerfile: ETL/Consumers/news_feed_dlx_consumer/Dockerfile
+    container_name: news-feed-dlx-consumer-container
+    depends_on:
+      - rabbitmq
+      - news_feed_consumer
+    environment:
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_PASS=${RABBITMQ_DEFAULT_PASS}
+      - RABBITMQ_VHOST=${RABBITMQ_VHOST}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_NAME=${DB_NAME}
+    networks:
+      - crypto-network
+
+  google_trends_dlx_consumer:
+    build:
+      context: .
+      dockerfile: ETL/Consumers/google_trends_dlx_consumer/Dockerfile
+    container_name: google-trends-dlx-consumer-container
+    depends_on:
+      - rabbitmq
+      - google_trends_consumer
+    environment:
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_PASS=${RABBITMQ_DEFAULT_PASS}
+      - RABBITMQ_VHOST=${RABBITMQ_VHOST}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_NAME=${DB_NAME}
+    networks:
+      - crypto-network
+
+# Volumes
+volumes:
+  rabbitmq-data:
+    external: false
+  timescaledb_data:
+    external: false
+  pgadmin_data:
+    external: false
+  historical_data_volume:
+    external: false
+  mongo_data:
+    external: false
+
+networks:
+  crypto-network:
+    external: true

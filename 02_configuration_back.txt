@@ -1,0 +1,79 @@
+Démarrer Spring-boot : 
+**********************
+** Il faut avoir démarré le docker-compose-etl.yml ** 
+** si ce n'est pas fait => docker compose -f docker-compose-back.yml up -d
+
+Vérifications :
+****************
+1. docker ps -a (voir si le service tdat901-back == Up)
+2. docker logs -f tdat901-back (voir s'il n'y a pas d'erreur en console)
+3. docker exec -it tdat901-back sh / OU / docker exec -it tdat901-back bash pour se connecter au container 
+4. Dans le cadre d'un docker exec -it => printenv pour afficher les variables d'environnement
+
+Le swagger : 
+***************
+http://localhost:8080/swagger-ui/index.html
+
+API HTTP : 
+************
+Les variables:
+---------------
+Les assets : "BTCEUR", "ETHEUR", "BNBEUR", "SOLEUR", "XRPEUR", "ADAEUR", "DOGEEUR", "LTCEUR", "XLMEUR", "TRXEUR"
+Les periodes : 1d, 1w, 1m, 3m, 6m, 1y
+
+Les prix :
+----------
+GET :
+http://localhost:8080/api/prices/{asset}/history
+En paramètre il faut entrer les périodes :
+http://localhost:8080/api/prices/BTCEUR/history?period=1m
+
+Les assets : 
+-------------
+GET : 
+http://localhost:8080/api/prices/assets 
+
+Les derniers prix (connexion initiale avant websocket) :
+--------------------
+GET : 
+http://localhost:8080/api/prices/latest
+
+
+Les news :
+------------
+GET 
+http://localhost:8080/api/news 
+Toutes les news dans l'ordre décroissant
+La pagination est activée (10 par page)
+par défaut => page=0 size=10
+
+avec les paramètres URL : 
+http://localhost:8080/api/news?page=0&size=10
+page=0 la page que tu souhaites obtenir
+size=10 le nombre d'items par pages
+
+GET 
+http://localhost:8080/api/news/{id}
+Pour obtenir, un seul article
+exemple: 
+http://localhost:8080/api/news/1
+
+Les trends :
+-------------
+GET 
+http://localhost:8080/api/trends/latest 
+Obtient les tendances google les plus récentes (enregistrées sur notre DB)
+
+
+WebSocket:
+***********
+
+Connexion : 
+ws://localhost:8080/ws
+
+Abonnements : 
+(toutes les cryptos) : /topic/price/
+(Crypto spécifique) : /topic/price/{asset}
+(les 10 dernières news) /topic/news/
+(les dernières trends à la connexion et toutes les heures à 00 minute) /topic/trends/
+

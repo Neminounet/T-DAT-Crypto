@@ -1,0 +1,85 @@
+** I  Lancer l'ETL : 
+***************
+Au niveau root => docker compose -f docker-compose-etl.yml up --build -d 
+ou docker compose -f docker-compose-etl.yml up -d  (à privilégier)
+
+Très rapidement vous devriez constater que 3 containers sont exited : 
+- reinject-failed-messages-producer-container
+- historical-price-producer-container
+- db-initializer-container
+
+C'est normal, donc pas de panique 
+par contre l'inverse ==> panique
+
+** II Couper l'ETL : 
+***************
+(Sans supprimer les volumes)
+Au niveau root => docker compose -f docker-composer-etl.yml down 
+
+(En supprimant les volumes)
+Au niveau root => docker compose -f docker-composer-etl.yml down -v
+
+** III Les interfaces utilisateurs (par défaut):
+********************************
+PostgreSQL (TimescaleDB) => via pgAdmin => http://localhost:8081
+===========
+
+1. Connexion 
+--------------
+Login => admin@admin.com
+mdp => admin
+
+2. Register un serveur 
+------------------
+General > Name => (Nom que vous voulez // par exemple : Epitech)
+Connection > Host name/address => (nom du service docker compose : timescaledb)
+Connection > Port => 5432
+Connection > Username => postgres
+Connection > Password => postgres
+Connection > Save Password ? => True
+Save
+
+3. La DB 
+----------
+La BDD se nomme tdat901 (comme c'est original).
+
+4. Consulter les tables 
+-------------------------
+Schemas > public > Tables 
+
+Vous devriez avoir 3 tables : news_data / price_data / trends_data 
+clic droit (sur la table ^^") => View / Edit Data => All Row
+
+
+MongoDB => via Mongo Express => http://localhost:8082 
+=========
+1. Connexion  
+--------------
+utilisateur => dev 
+mdp => dev
+
+
+RabbitMQ => http://localhost:15672/
+==========
+1. Connexion 
+---------------
+utilisateur => admin 
+mdp => admin
+
+** IV Commandes Docker utiles : 
+**********************************
+docker stats : permet de consulter la consommation des ressources par nos containers.
+docker ps -a : permet de consulter les containers actifs/exited 
+docker logs <nom_container> : permet de consulter les logs générés par les containers
+docker logs -f <nom_container> : permet de consulter en LIVE les logs 
+
+Consulter un container de l'intérieur : 
+docker exec -it <nom container> sh 
+
+Pour le container reinject : 
+docker restart reinject-failed-messages-producer-container
+
+
+
+
+
